@@ -20,21 +20,21 @@ class MonodepthOptions:
         self.parser.add_argument("--data_path",
                                  type=str,
                                  help="path to the training data",
-                                 default=os.path.join(file_dir, "kitti_data"))
+                                 default="../DL_Project/student_data/")
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
-                                 default=os.path.join(os.path.expanduser("~"), "tmp"))
+                                 default="./checkpoints_train/")
 
         # TRAINING options
         self.parser.add_argument("--model_name",
                                  type=str,
                                  help="the name of the folder to save the model in",
-                                 default="mdp")
+                                 default="models")
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
-                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark"],
+                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark", "DL"],
                                  default="eigen_zhou")
         self.parser.add_argument("--num_layers",
                                  type=int,
@@ -44,19 +44,19 @@ class MonodepthOptions:
         self.parser.add_argument("--dataset",
                                  type=str,
                                  help="dataset to train on",
-                                 default="kitti",
-                                 choices=["kitti", "kitti_odom", "kitti_depth", "kitti_test"])
+                                 default="DL",
+                                 choices=["kitti", "kitti_odom", "kitti_depth", "kitti_test", "DL"])
         self.parser.add_argument("--png",
                                  help="if set, trains from raw KITTI png files (instead of jpgs)",
                                  action="store_true")
         self.parser.add_argument("--height",
                                  type=int,
                                  help="input image height",
-                                 default=192)
+                                 default=256)
         self.parser.add_argument("--width",
                                  type=int,
                                  help="input image width",
-                                 default=640)
+                                 default=320)
         self.parser.add_argument("--disparity_smoothness",
                                  type=float,
                                  help="disparity smoothness weight",
@@ -73,7 +73,7 @@ class MonodepthOptions:
         self.parser.add_argument("--max_depth",
                                  type=float,
                                  help="maximum depth",
-                                 default=100.0)
+                                 default=1000.0)
         self.parser.add_argument("--use_stereo",
                                  help="if set, uses stereo pair for training",
                                  action="store_true")
@@ -87,19 +87,19 @@ class MonodepthOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=12)
+                                 default=64)
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
-                                 default=1e-4)
+                                 default=1e-2)
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=20)
+                                 default=100)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
-                                 default=15)
+                                 default=20)
 
         # ABLATION options
         self.parser.add_argument("--v1_multiscale",
@@ -140,7 +140,7 @@ class MonodepthOptions:
         self.parser.add_argument("--num_workers",
                                  type=int,
                                  help="number of dataloader workers",
-                                 default=12)
+                                 default=8)
 
         # LOADING options
         self.parser.add_argument("--load_weights_folder",
@@ -160,7 +160,7 @@ class MonodepthOptions:
         self.parser.add_argument("--save_frequency",
                                  type=int,
                                  help="number of epochs between each save",
-                                 default=1)
+                                 default=10)
 
         # EVALUATION options
         self.parser.add_argument("--eval_stereo",

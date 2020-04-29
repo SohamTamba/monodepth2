@@ -35,6 +35,12 @@ class Trainer:
         assert self.opt.height % 32 == 0, "'height' must be a multiple of 32"
         assert self.opt.width % 32 == 0, "'width' must be a multiple of 32"
 
+        # Specific to DL
+        assert self.opt.height == 256
+        assert self.opt.width == 320
+        assert min(self.opt.frame_ids) >= -1 and max(self.opt.frame_ids) <= 1
+        assert not opt.use_stereo
+
         self.models = {}
         self.parameters_to_train = []
 
@@ -51,6 +57,7 @@ class Trainer:
         if self.opt.use_stereo:
             self.opt.frame_ids.append("s")
 
+        # Change to Resnext
         self.models["encoder"] = networks.ResnetEncoder(
             self.opt.num_layers, self.opt.weights_init == "pretrained")
         self.models["encoder"].to(self.device)
@@ -99,7 +106,7 @@ class Trainer:
             self.models["predictive_mask"].to(self.device)
             self.parameters_to_train += list(self.models["predictive_mask"].parameters())
 
-        self.model_optimizer = optim.Adam(self.parameters_to_train, self.opt.learning_rate)
+        self.model_optimizer = optim.SGD(self.parameters_to_train, lr=self.opt.learning_rate, momentum=0.9, nesterov=True, weight_decay=1e-6)
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(
             self.model_optimizer, self.opt.scheduler_step_size, 0.1)
 
@@ -110,33 +117,35 @@ class Trainer:
         print("Models and tensorboard events files are saved to:\n  ", self.opt.log_dir)
         print("Training is using:\n  ", self.device)
 
-        # data
-        datasets_dict = {"kitti": datasets.KITTIRAWDataset,
-                         "kitti_odom": datasets.KITTIOdomDataset}
-        self.dataset = datasets_dict[self.opt.dataset]
+        #Hard coding stuff for dataset for convinience
+        self.dataset = datasets.DL_dataset
+        scale = 1
+        ####
 
-        fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
 
-        train_filenames = readlines(fpath.format("train"))
-        val_filenames = readlines(fpath.format("val"))
-        img_ext = '.png' if self.opt.png else '.jpg'
+        #train_filenames = readlines(fpath.format("train"))
+        #val_filenames = readlines(fpath.format("val"))
+        img_ext = '.png' if self.opt.png else '.jpeg' 
 
-        num_train_samples = len(train_filenames)
+         
         self.num_total_steps = num_train_samples // self.opt.batch_size * self.opt.num_epochs
 
         train_dataset = self.dataset(
             self.opt.data_path, train_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, 4, is_train=True, img_ext=img_ext)
+            self.opt.frame_ids, scale, is_train=True, img_ext=img_ext)
         self.train_loader = DataLoader(
             train_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         val_dataset = self.dataset(
             self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, 4, is_train=False, img_ext=img_ext)
+            self.opt.frame_ids, scale, is_train=False, img_ext=img_ext)
         self.val_loader = DataLoader(
             val_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         self.val_iter = iter(self.val_loader)
+
+        num_train_samples = len(train_dataset)
 
         self.writers = {}
         for mode in ["train", "val"]:
@@ -497,7 +506,6 @@ class Trainer:
 
     def compute_depth_losses(self, inputs, outputs, losses):
         """Compute depth metrics, to allow monitoring during training
-
         This isn't particularly accurate as it averages over the entire batch,
         so is only used to give an indication of validation performance
         """
