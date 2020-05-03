@@ -614,6 +614,8 @@ class Trainer:
         save_path = os.path.join(save_folder, "{}.pth".format("adam"))
         torch.save(self.model_optimizer.state_dict(), save_path)
 
+        print(f"Finished saving to {save_folder}")
+
     def load_model(self):
         """Load model(s) from disk
         """
@@ -632,11 +634,16 @@ class Trainer:
             model_dict.update(pretrained_dict)
             self.models[n].load_state_dict(model_dict)
 
+
+      
+
         # loading adam state
         optimizer_load_path = os.path.join(self.opt.load_weights_folder, "adam.pth")
         if os.path.isfile(optimizer_load_path):
             print("Loading Adam weights")
             optimizer_dict = torch.load(optimizer_load_path)
             self.model_optimizer.load_state_dict(optimizer_dict)
+            for g in optim.param_groups: # Manually annealing LR
+                g['lr'] *= 0.1
         else:
             print("Cannot find Adam weights so Adam is randomly initialized")

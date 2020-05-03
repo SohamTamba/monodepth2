@@ -31,7 +31,7 @@ def parse_args():
                         help='path to a test image or folder of images', required=True)
     parser.add_argument('--model_name', type=str,
                         help='name of a pretrained model to use',
-                        choices=[
+                        choices=["num_1",
                             "mono_640x192",
                             "stereo_640x192",
                             "mono+stereo_640x192",
@@ -73,8 +73,8 @@ def test_simple(args):
     loaded_dict_enc = torch.load(encoder_path, map_location=device)
 
     # extract the height and width of image that this model was trained with
-    feed_height = loaded_dict_enc['height']
-    feed_width = loaded_dict_enc['width']
+    feed_height = 256 # loaded_dict_enc['height']
+    feed_width = 320 #loaded_dict_enc['width']
     filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in encoder.state_dict()}
     encoder.load_state_dict(filtered_dict_enc)
     encoder.to(device)

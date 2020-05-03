@@ -30,7 +30,7 @@ class MonodepthOptions:
         self.parser.add_argument("--model_name",
                                  type=str,
                                  help="the name of the folder to save the model in",
-                                 default="num_1")
+                                 default="num_2")
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
@@ -99,7 +99,7 @@ class MonodepthOptions:
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
-                                 default=20)
+                                 default=10)
 
         # ABLATION options
         self.parser.add_argument("--v1_multiscale",
@@ -160,7 +160,7 @@ class MonodepthOptions:
         self.parser.add_argument("--save_frequency",
                                  type=int,
                                  help="number of epochs between each save",
-                                 default=10)
+                                 default=5)
 
         # EVALUATION options
         self.parser.add_argument("--eval_stereo",
