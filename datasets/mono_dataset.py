@@ -22,7 +22,7 @@ def pil_loader(path):
     # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
         with Image.open(f) as img:
-            return img
+            return img.convert("RGB")
 
 
 class MonoDataset(data.Dataset):
@@ -89,7 +89,6 @@ class MonoDataset(data.Dataset):
 
     def preprocess(self, inputs, color_aug):
         """Resize colour images to the required scales and augment if required
-
         We create the color_aug object in advance and apply the same augmentation to all
         images in this item. This ensures that all images input to the pose network receive the
         same augmentation.
@@ -191,7 +190,7 @@ class MonoDataset(data.Dataset):
 
         if "s" in self.frame_idxs:
             stereo_T = np.eye(4, dtype=np.float32)
-            baseline_sign = -1 if do_flip else 1sidessideide
+            baseline_sign = -1 if do_flip else 1
             side_sign = -1 if side == "l" else 1
             stereo_T[0, 3] = side_sign * baseline_sign * 0.1
 

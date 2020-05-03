@@ -53,18 +53,9 @@ class DL_dataset(MonoDataset):
 
         # Factor of 4 used because images have been resized
         for i in range(len(self.K)):
-            self.K[i][0, :] /= 4
-            self.K[i][1, :] /= 4
+            self.K[i][0, :] /= 4*self.width
+            self.K[i][1, :] /= 4*self.height
 
-        self.inv_K = [np.linalg.pinv(x) for x in self.K]
-
-        self.K = [torch.from_numpy(x) for x in self.K]
-        self.inv_K = [torch.from_numpy(x) for x in self.inv_K]
-        
-
-        
-
-        assert len(range(self.num_scales)) == 1
         if self.load_depth:
             raise ValueError("We do not have ground truth depth")
         if "s" in self.frame_idxs:
@@ -103,38 +94,49 @@ class DL_dataset(MonoDataset):
         do_color_aug = self.is_train and random.random() > 0.5
         do_flip = self.is_train and random.random() > 0.5
 
-        # Extract indices for files
-        ind = index
-
-        cam_index = ind%CAMS
-        ind /= CAMS
-
-        samp_index = ind%(SAMPLES-2)+1
-        ind /= SAMPLES-2
-
-        scene_index = ind%num_vids
-        if self.is_train:
-            scene += train_VIDS
-
         if do_color_aug:
             color_aug = transforms.ColorJitter.get_params(
                 self.brightness, self.contrast, self.saturation, self.hue)
         else:
             color_aug = (lambda x: x)
 
+        # Extract indices for files
+        ind = index
+
+        cam_index = ind%CAMS
+        ind //= CAMS
+
+        samp_index = ind%(SAMPLES-2)+1
+        ind //= SAMPLES-2
+
+        scene_index = ind%self.num_vids
+        if not self.is_train:
+            scene_index += train_VIDS
+
+
+        for scale in range(self.num_scales):
+            K = self.K[cam_index].copy()
+
+            K[0, :] *= self.width // (2 ** scale)
+            K[1, :] *= self.height // (2 ** scale)
+
+            inv_K = np.linalg.pinv(K)
+
+            inputs[("K", scale)] = torch.from_numpy(K)
+            inputs[("inv_K", scale)] = torch.from_numpy(inv_K)
+
 
         for i in self.frame_idxs:
-            im = self.get_color(scene_index, samp_index + i, self.cam_list[cam_index], do_flip)
-            inputs[("color", i, 0)] = self.to_tensor(im.copy())
-            inputs[("color_aug", i, 0)] = self.to_tensor(color_aug(im))
-            
+            inputs[("color", i, -1)] = self.get_color(scene_index, samp_index + i, self.cam_list[cam_index], do_flip)
 
-        inputs[("K", 0)] = self.K[cam_index].copy()
-        inputs[("inv_K", 0)] = self.inv_K[cam_index].copy()
+        self.preprocess(inputs, color_aug)
+        for i in self.frame_idxs:
+            del inputs[("color", i, -1)]
+            del inputs[("color_aug", i, -1)]
 
         return inputs
 
-    def len():
+    def __len__(self):
         return self.num_vids*(SAMPLES-2)*CAMS # Do not take first and last frame of each scene
 
     def get_image_path(self, scene_index, samp_index, cam):
@@ -143,7 +145,7 @@ class DL_dataset(MonoDataset):
         return image_path
 
     def get_color(self, scene_index, samp_index, cam, do_flip):
-        color = self.loader(self.get_image_path(scene_index, samp_index, cam)).resize(256, 320)
+        color = self.loader(self.get_image_path(scene_index, samp_index, cam))
 
         if do_flip:
             color = color.transpose(pil.FLIP_LEFT_RIGHT)

@@ -30,12 +30,12 @@ class MonodepthOptions:
         self.parser.add_argument("--model_name",
                                  type=str,
                                  help="the name of the folder to save the model in",
-                                 default="models")
+                                 default="num_1")
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
                                  choices=["eigen_zhou", "eigen_full", "odom", "benchmark", "DL"],
-                                 default="eigen_zhou")
+                                 default="DL")
         self.parser.add_argument("--num_layers",
                                  type=int,
                                  help="number of resnet layers",
@@ -87,15 +87,15 @@ class MonodepthOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=64)
+                                 default=12)
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
-                                 default=1e-2)
+                                 default=1e-4)
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=100)
+                                 default=40)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
@@ -120,7 +120,7 @@ class MonodepthOptions:
         self.parser.add_argument("--weights_init",
                                  type=str,
                                  help="pretrained or scratch",
-                                 default="pretrained",
+                                 default="scratch",
                                  choices=["pretrained", "scratch"])
         self.parser.add_argument("--pose_model_input",
                                  type=str,

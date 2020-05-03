@@ -39,7 +39,7 @@ class Trainer:
         assert self.opt.height == 256
         assert self.opt.width == 320
         assert min(self.opt.frame_ids) >= -1 and max(self.opt.frame_ids) <= 1
-        assert not opt.use_stereo
+        assert not self.opt.use_stereo
 
         self.models = {}
         self.parameters_to_train = []
@@ -106,7 +106,7 @@ class Trainer:
             self.models["predictive_mask"].to(self.device)
             self.parameters_to_train += list(self.models["predictive_mask"].parameters())
 
-        self.model_optimizer = optim.SGD(self.parameters_to_train, lr=self.opt.learning_rate, momentum=0.9, nesterov=True, weight_decay=1e-6)
+        self.model_optimizer = optim.Adam(self.parameters_to_train, lr=self.opt.learning_rate)
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(
             self.model_optimizer, self.opt.scheduler_step_size, 0.1)
 
@@ -119,7 +119,6 @@ class Trainer:
 
         #Hard coding stuff for dataset for convinience
         self.dataset = datasets.DL_dataset
-        scale = 1
         ####
 
         #fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
@@ -128,24 +127,28 @@ class Trainer:
         #val_filenames = readlines(fpath.format("val"))
         img_ext = '.png' if self.opt.png else '.jpeg' 
 
-         
-        self.num_total_steps = num_train_samples // self.opt.batch_size * self.opt.num_epochs
+        # Specific to DL
+        train_filenames = [None,]
+        val_filenames = [None,]
 
         train_dataset = self.dataset(
             self.opt.data_path, train_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, scale, is_train=True, img_ext=img_ext)
+            self.opt.frame_ids, 4, is_train=True, img_ext=img_ext)
         self.train_loader = DataLoader(
             train_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         val_dataset = self.dataset(
             self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, scale, is_train=False, img_ext=img_ext)
+            self.opt.frame_ids, 4, is_train=False, img_ext=img_ext)
         self.val_loader = DataLoader(
             val_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         self.val_iter = iter(self.val_loader)
 
+
         num_train_samples = len(train_dataset)
+        self.num_total_steps = num_train_samples // self.opt.batch_size * self.opt.num_epochs
+
 
         self.writers = {}
         for mode in ["train", "val"]:
@@ -202,7 +205,6 @@ class Trainer:
     def run_epoch(self):
         """Run a single epoch of training and validation
         """
-        self.model_lr_scheduler.step()
 
         print("Training")
         self.set_train()
@@ -233,6 +235,8 @@ class Trainer:
                 self.val()
 
             self.step += 1
+
+        self.model_lr_scheduler.step()
 
     def process_batch(self, inputs):
         """Pass a minibatch through the network and generate images and losses
@@ -464,7 +468,7 @@ class Trainer:
                 reprojection_losses *= mask
 
                 # add a loss pushing mask to 1 (using nn.BCELoss for stability)
-                weighting_loss = 0.2 * nn.BCELoss()(mask, torch.ones(mask.shape).cuda())
+                weighting_loss = 0.2 * nn.BCELoss()(mask, torch.ones(mask.shape).to(self.device))
                 loss += weighting_loss.mean()
 
             if self.opt.avg_reprojection:
@@ -475,7 +479,7 @@ class Trainer:
             if not self.opt.disable_automasking:
                 # add random numbers to break ties
                 identity_reprojection_loss += torch.randn(
-                    identity_reprojection_loss.shape).cuda() * 0.00001
+                    identity_reprojection_loss.shape).to(self.device) * 0.00001
 
                 combined = torch.cat((identity_reprojection_loss, reprojection_loss), dim=1)
             else:
@@ -600,11 +604,11 @@ class Trainer:
         for model_name, model in self.models.items():
             save_path = os.path.join(save_folder, "{}.pth".format(model_name))
             to_save = model.state_dict()
-            if model_name == 'encoder':
+            #if model_name == 'encoder':
                 # save the sizes - these are needed at prediction time
-                to_save['height'] = self.opt.height
-                to_save['width'] = self.opt.width
-                to_save['use_stereo'] = self.opt.use_stereo
+                #to_save['height'] = self.opt.height
+                #to_save['width'] = self.opt.width
+                #to_save['use_stereo'] = self.opt.use_stereo
             torch.save(to_save, save_path)
 
         save_path = os.path.join(save_folder, "{}.pth".format("adam"))

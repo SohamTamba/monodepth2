@@ -4,4 +4,8 @@ __pycache__
 *_disp.npy
 *.npz
 kitti_data
-models
+!*/for_git.txt
+checkpoints_train/num_1/train/*
+checkpoints_train/num_1/val/*
+*adam.pth
+output.txt
