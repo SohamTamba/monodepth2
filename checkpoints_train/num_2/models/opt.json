@@ -24,7 +24,7 @@
     1
   ],
   "batch_size": 12,
-  "learning_rate": 0.0001,
+  "learning_rate": 1e-05,
   "num_epochs": 40,
   "scheduler_step_size": 10,
   "v1_multiscale": false,
@@ -35,9 +35,9 @@
   "weights_init": "scratch",
   "pose_model_input": "pairs",
   "pose_model_type": "separate_resnet",
-  "no_cuda": true,
+  "no_cuda": false,
   "num_workers": 8,
-  "load_weights_folder": null,
+  "load_weights_folder": "models/num_1",
   "models_to_load": [
     "encoder",
     "depth",
